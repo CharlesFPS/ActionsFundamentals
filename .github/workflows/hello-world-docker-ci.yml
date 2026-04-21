@@ -2,21 +2,65 @@ name: CI Build for Docker Action
 on:
   push:
     branches: [ main ]
-    paths: [ hello-world-docker-action/** ]
+    paths: [ .github/** ]
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'This is the environment we will deploy to.'
+        type: environment
+        required: true
 
 jobs:
-  test-action:
+  Build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3.3.0
+      - run: |
+          echo "This is was triggered by the event: ${{ github.event_name }}"
+          echo "The current branch is ${{ github.ref }} of the repository ${{ github.repository }}"
 
-      - name: Run my own container action
-        id: hello-action
-        uses: ./hello-world-docker-action
-        with:
-          who-to-greet: '@wulfland'
+      - uses: actions/checkout@v6.0.2
 
-      - name: Output time set in the container
-        run: echo "The time was ${{ steps.hello-action.outputs.time }} when the action said hello"
+      - name: List all teh files in the repo
+        run: |
+          echo "The repository ${{ github.repository }} contains the following files:"
+          tree
+    Test:
+      runs-on: ubuntu-latest
+      if: github.event_name == 'workflow_dispatch'
+      needs: Build
+      environment: Test
+      steps:
+        - run: echo "Testing..."
+
+    Load-Test:
+      runs-on: ubuntu-latest
+      if: github.event_name == 'workflow_dispatch'
+      needs: Build
+      environment: Load-Test
+      steps:
+        - run: echo "Testing..."
+          sleep 15
+
+    Production:
+      runs-on: ubuntu-latest
+      if: github.event_name == 'workflow_dispatch'
+      needs: [Test, Load-Test]
+      environment:
+        name: Production
+        url: https://writeabout.net
+      steps:
+        - run: |
+          echo "🚀 Step 1..."
+          sleep 10
+      - run: |
+          echo "🚀 Step 2..."
+          sleep 10
+      - run: |
+          echo "🚀 Step 3..."
+          sleep 10
+      - run: |
+          echo "🚀 Step 4..."
+          sleep 10
+      - run: |
+          echo "🚀 Step 5..."
+          sleep 10
